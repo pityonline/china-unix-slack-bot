@@ -54,11 +54,16 @@ func slackStart(token string) (wsurl, id string, err error) {
 }
 
 // Message represents a message event
+//
+// API document: https://api.slack.com/events/message
 type Message struct {
 	ID      uint64 `json:"id"`
+	User    string `json:"user"`
 	Type    string `json:"type"`
+	SubType string `json:"subtype"`
 	Channel string `json:"channel"`
 	Text    string `json:"text"`
+	TS      string `json:"ts"`
 }
 
 func getMessage(ws *websocket.Conn) (m Message, err error) {
