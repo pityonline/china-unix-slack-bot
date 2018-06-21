@@ -3,11 +3,18 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	log.SetFormatter(&log.TextFormatter{})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
+}
 
 func main() {
 	if len(os.Args) != 2 {
@@ -21,7 +28,7 @@ func main() {
 	for {
 		m, err := getMessage(ws)
 		if err != nil {
-			log.Fatal(err)
+			log.Errorf("Get message Error: %#v", err)
 		}
 
 		if m.Type == "message" && strings.HasPrefix(m.Text, "<@"+id+">") {
@@ -30,6 +37,7 @@ func main() {
 				go func(m Message) {
 					m.Text = greetting()
 					postMessage(ws, m)
+					log.Infof("%#v", m)
 				}(m)
 			} else if len(parts) == 3 && parts[1] == "ip" {
 				api := "http://freeapi.ipip.net/"
@@ -37,10 +45,12 @@ func main() {
 				go func(m Message) {
 					m.Text = ipQuery(api, ip)
 					postMessage(ws, m)
+					log.Infof("%#v", m)
 				}(m)
 			} else {
 				m.Text = fmt.Sprintf("Sorry, it's not implemented yet.\n")
 				postMessage(ws, m)
+				log.Warnf("%#v", m)
 			}
 		}
 	}
@@ -56,14 +66,14 @@ func ipQuery(api, ip string) (loc string) {
 	res, err := http.Get(url)
 
 	if err != nil {
-		log.Fatalf("Request Error: %+v\n", err)
+		log.Errorf("Request Error: %+v\n", err)
 	}
 
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		log.Fatalf("Response Error: %+v\n", err)
+		log.Errorf("Response Error: %+v\n", err)
 	}
 
 	loc = strings.TrimSpace(string(body))
