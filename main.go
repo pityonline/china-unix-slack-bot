@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -29,6 +31,13 @@ func main() {
 					m.Text = greetting()
 					postMessage(ws, m)
 				}(m)
+			} else if len(parts) == 3 && parts[1] == "ip" {
+				api := "http://freeapi.ipip.net/"
+				ip := parts[2]
+				go func(m Message) {
+					m.Text = ipQuery(api, ip)
+					postMessage(ws, m)
+				}(m)
 			} else {
 				m.Text = fmt.Sprintf("Sorry, it's not implemented yet.\n")
 				postMessage(ws, m)
@@ -39,4 +48,25 @@ func main() {
 
 func greetting() string {
 	return "Hello world!"
+}
+
+// ipQuery requests to an API with an IP address, return with location
+func ipQuery(api, ip string) (loc string) {
+	url := api + ip
+	res, err := http.Get(url)
+
+	if err != nil {
+		log.Fatalf("Request Error: %+v\n", err)
+	}
+
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		log.Fatalf("Response Error: %+v\n", err)
+	}
+
+	loc = strings.TrimSpace(string(body))
+
+	return fmt.Sprintf("IP: %v\nLocation: %v\nURL: %v\n", ip, loc, url)
 }
