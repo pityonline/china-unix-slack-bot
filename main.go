@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/pityonline/china-unix-slack-bot/service"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -87,7 +86,7 @@ func runBot(token string) error {
 			parts := strings.Fields(m.Text)
 			if len(parts) == 2 && parts[1] == "hi" {
 				go func(m Message) {
-					m.Text = greetting()
+					m.Text = service.Greetting()
 					postMessage(ws, m)
 					log.Infof("%#v", m)
 				}(m)
@@ -95,7 +94,7 @@ func runBot(token string) error {
 				api := "http://freeapi.ipip.net/"
 				ip := parts[2]
 				go func(m Message) {
-					m.Text = ipQuery(api, ip)
+					m.Text = service.IPQuery(api, ip)
 					postMessage(ws, m)
 					log.Infof("%#v", m)
 				}(m)
@@ -106,29 +105,4 @@ func runBot(token string) error {
 			}
 		}
 	}
-}
-
-func greetting() string {
-	return "Hello world!"
-}
-
-// ipQuery requests to an API with an IP address, return with location
-func ipQuery(api, ip string) (loc string) {
-	url := api + ip
-	res, err := http.Get(url)
-
-	if err != nil {
-		log.Errorf("Request Error: %+v\n", err)
-	}
-
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-
-	if err != nil {
-		log.Errorf("Response Error: %+v\n", err)
-	}
-
-	loc = strings.TrimSpace(string(body))
-
-	return fmt.Sprintf("IP: %v\nLocation: %v\nURL: %v\n", ip, loc, url)
 }
