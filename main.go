@@ -19,6 +19,7 @@ func init() {
 }
 
 func main() {
+	var debug bool
 	var token string
 
 	// app information
@@ -36,6 +37,11 @@ func main() {
 
 	// global flags
 	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:        "debug, d",
+			Usage:       "debug mode",
+			Destination: &debug,
+		},
 		cli.StringFlag{
 			Name: "token, t",
 			// FIXME: EnvVar not taken if not passed, even it's in env
@@ -53,6 +59,11 @@ func main() {
 
 	// run app
 	err := app.Run(os.Args)
+
+	if debug == true {
+		fmt.Println("Running in debug mode...")
+		log.SetLevel(log.DebugLevel)
+	}
 
 	if err != nil {
 		log.Fatalf("%#v", err)

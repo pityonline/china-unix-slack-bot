@@ -80,6 +80,7 @@ func postMessage(ws *websocket.Conn, m Message) error {
 
 func slackConnect(token string) (*websocket.Conn, string) {
 	wsurl, id, err := slackStart(token)
+	log.Debugf("Slack token: %+v", token)
 	if err != nil {
 		log.Fatalf("Slack Start Error: %#v", err)
 	}
