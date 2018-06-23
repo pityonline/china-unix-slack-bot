@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
 
 func init() {
@@ -17,13 +19,52 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: ./bot $SLACK_TOKEN\n")
-		os.Exit(1)
+	var token string
+
+	// app information
+	app := cli.NewApp()
+	app.Name = "China Unix Slack Bot"
+	app.Version = "v0.1.0"
+	app.Compiled = time.Now()
+	app.Authors = []cli.Author{
+		cli.Author{
+			Name:  "pityonline",
+			Email: "pityonline@gmail.com",
+		},
+	}
+	app.Usage = "A bot service for ChinaUnix slack team"
+
+	// global flags
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name: "token, t",
+			// FIXME: EnvVar not taken if not passed, even it's in env
+			EnvVar:      "SLACK_TOKEN",
+			Usage:       "must provide your slack token",
+			Destination: &token,
+		},
 	}
 
-	ws, id := slackConnect(os.Args[1])
-	fmt.Println("bot ready, ^C exits")
+	// FIXME: there's must be an action before app.Run, or it prints help
+	app.Action = func(ctx *cli.Context) error {
+		fmt.Printf("%s version %s\n", app.Name, app.Version)
+		return nil
+	}
+
+	// run app
+	err := app.Run(os.Args)
+
+	if err != nil {
+		log.Fatalf("%#v", err)
+	}
+
+	app.Action = runBot(token)
+}
+
+// runBot runs the bot service
+func runBot(token string) error {
+	ws, id := slackConnect(token)
+	log.Println("Bot ready, ^C exits")
 
 	for {
 		m, err := getMessage(ws)
