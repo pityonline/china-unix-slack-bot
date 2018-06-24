@@ -1,0 +1,35 @@
+language: go
+
+go:
+  - "1.10.x"
+
+install: true
+
+stages:
+  - lint
+  - test
+  - build
+  - spelling
+  - markdownlint
+
+jobs:
+  include:
+    - stage: lint
+      script:
+        - go get -u golang.org/x/lint/golint
+        - golint -set_exit_status ./...
+        - go vet -v ./...
+    - stage: test
+      script:
+        - go test -v ./...
+    - stage: build
+      script:
+        - go build
+    - stage: spelling
+      script:
+        - go get -u github.com/client9/misspell/cmd/misspell
+        - misspell -error .
+    - stage: markdownlint
+      script:
+        - gem install mdl
+        - mdl .
