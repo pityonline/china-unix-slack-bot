@@ -86,7 +86,7 @@ func runBot(token string) error {
 			parts := strings.Fields(m.Text)
 			if len(parts) == 2 && parts[1] == "hi" {
 				go func(m Message) {
-					m.Text = service.Greetting()
+					m.Text = service.Greet()
 					postMessage(ws, m)
 					log.Infof("%#v", m)
 				}(m)
