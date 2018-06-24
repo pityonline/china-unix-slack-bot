@@ -90,6 +90,12 @@ func runBot(token string) error {
 					postMessage(ws, m)
 					log.Infof("%#v", m)
 				}(m)
+			} else if len(parts) == 2 && parts[1] == "ping" {
+				go func(m Message) {
+					m.Text = service.Ping()
+					postMessage(ws, m)
+					log.Infof("%#v", m)
+				}(m)
 			} else if len(parts) == 3 && parts[1] == "ip" {
 				api := "http://freeapi.ipip.net/"
 				ip := parts[2]
