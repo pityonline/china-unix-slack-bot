@@ -12,4 +12,5 @@
 *.out
 
 # For this repo
-china-unix-slack-bot
+slack-bot
+config.*
