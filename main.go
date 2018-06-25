@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
+	smartConfig "github.com/flw-cn/go-smart-config"
 	"github.com/pityonline/china-unix-slack-bot/service"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 )
+
+type Config struct {
+	Debug bool   `flag:"d|false|debug mode, default to 'false'"`
+	Token string `flag:"t||must provide your {SLACK_TOKEN} here"`
+}
 
 func init() {
 	log.SetFormatter(&log.TextFormatter{})
@@ -18,57 +22,16 @@ func init() {
 }
 
 func main() {
-	var debug bool
-	var token string
+	var config Config
 
-	// app information
-	app := cli.NewApp()
-	app.Name = "China Unix Slack Bot"
-	app.Version = "v0.1.0"
-	app.Compiled = time.Now()
-	app.Authors = []cli.Author{
-		cli.Author{
-			Name:  "pityonline",
-			Email: "pityonline@gmail.com",
-		},
-	}
-	app.Usage = "A bot service for ChinaUnix slack team"
+	smartConfig.LoadConfig("Slack Bot", "v0.2.0", &config)
 
-	// global flags
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:        "debug, d",
-			Usage:       "debug mode",
-			Destination: &debug,
-		},
-		cli.StringFlag{
-			Name: "token, t",
-			// FIXME: EnvVar not taken if not passed, even it's in env
-			EnvVar:      "SLACK_TOKEN",
-			Usage:       "must provide your slack token",
-			Destination: &token,
-		},
-	}
-
-	// FIXME: there's must be an action before app.Run, or it prints help
-	app.Action = func(ctx *cli.Context) error {
-		fmt.Printf("%s version %s\n", app.Name, app.Version)
-		return nil
-	}
-
-	// run app
-	err := app.Run(os.Args)
-
-	if debug == true {
-		fmt.Println("Running in debug mode...")
+	if config.Debug {
+		log.Println("Running in debug mode...")
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if err != nil {
-		log.Fatalf("%#v", err)
-	}
-
-	app.Action = runBot(token)
+	runBot(config.Token)
 }
 
 // runBot runs the bot service
