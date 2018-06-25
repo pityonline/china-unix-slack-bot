@@ -5,7 +5,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	smartConfig "github.com/flw-cn/go-smart-config"
+	"github.com/nlopes/slack"
 	"github.com/pityonline/china-unix-slack-bot/service"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,57 +23,109 @@ func init() {
 	log.SetLevel(log.InfoLevel)
 }
 
+var selfID string
+
+var Dumper = spew.ConfigState{
+	Indent:                  " ",
+	DisablePointerAddresses: true,
+	DisableCapacities:       true,
+	SortKeys:                true,
+}
+
 func main() {
 	var config Config
 
 	smartConfig.LoadConfig("Slack Bot", "v0.2.0", &config)
 
+	client := slack.New(config.Token)
+
 	if config.Debug {
-		log.Println("Running in debug mode...")
 		log.SetLevel(log.DebugLevel)
+		log.Debug("Running in debug mode...")
+		client.SetDebug(true)
 	}
 
-	runBot(config.Token)
+	rtm := client.NewRTM()
+	go rtm.ManageConnection()
+
+	mainLoop(rtm)
 }
 
-// runBot runs the bot service
-func runBot(token string) error {
-	ws, id := slackConnect(token)
-	log.Println("Bot ready, ^C exits")
+func mainLoop(rtm *slack.RTM) {
+	for m := range rtm.IncomingEvents {
+		switch ev := m.Data.(type) {
+		case *slack.ConnectingEvent:
+			log.Info("Connecting...")
 
-	for {
-		m, err := getMessage(ws)
-		if err != nil {
-			log.Errorf("Get message Error: %#v", err)
-		}
+		case *slack.ConnectedEvent:
+			log.Infof("Connected to %s<%s>, as known as %s<%s>",
+				ev.Info.Team.Name, ev.Info.Team.ID,
+				ev.Info.User.Name, ev.Info.User.ID,
+			)
 
-		if m.Type == "message" && strings.HasPrefix(m.Text, "<@"+id+">") {
-			parts := strings.Fields(m.Text)
-			if len(parts) == 2 && parts[1] == "hi" {
-				go func(m Message) {
-					m.Text = service.Greet()
-					postMessage(ws, m)
-					log.Infof("%#v", m)
-				}(m)
-			} else if len(parts) == 2 && parts[1] == "ping" {
-				go func(m Message) {
-					m.Text = service.Ping()
-					postMessage(ws, m)
-					log.Infof("%#v", m)
-				}(m)
-			} else if len(parts) == 3 && parts[1] == "ip" {
-				api := "http://freeapi.ipip.net/"
-				ip := parts[2]
-				go func(m Message) {
-					m.Text = service.IPQuery(api, ip)
-					postMessage(ws, m)
-					log.Infof("%#v", m)
-				}(m)
-			} else {
-				m.Text = fmt.Sprintf("Sorry, it's not implemented yet.\n")
-				postMessage(ws, m)
-				log.Warnf("%#v", m)
-			}
+			selfID = ev.Info.User.ID
+
+		case *slack.HelloEvent:
+			// Ignore hello
+			log.Info("Received hello message which come from Slack. Online now.")
+
+		case *slack.MessageEvent:
+			log.Info("Message:", ev.Text)
+			log.Debug("Message:", Dumper.Sdump(ev))
+			runBot(rtm, ev)
+
+		case *slack.RTMError:
+			log.Debug("Error:", ev.Error())
+
+		case *slack.InvalidAuthEvent:
+			log.Debug("Invalid credentials:", ev)
+
+		case *slack.LatencyReport:
+			log.Debug("LatencyReport:", ev.Value)
+
+		default:
+			// Ignore other events..
+			log.Debug("Unexpected:", ev)
 		}
+	}
+}
+
+func runBot(rtm *slack.RTM, ev *slack.MessageEvent) {
+	text := ev.Text
+	id := "<@" + selfID + ">"
+	if !strings.Contains(text, id) {
+		return
+	}
+
+	text = strings.Replace(text, id, "", -1)
+	strings.Trim(text, " ")
+
+	parts := strings.Fields(text)
+	if len(parts) == 1 && parts[0] == "hi" {
+		go func() {
+			m := service.Greet()
+			rtm.SendMessage(rtm.NewOutgoingMessage(m, ev.Channel))
+			log.Infof("%#v", m)
+		}()
+	} else if len(parts) == 1 && parts[0] == "ping" {
+		go func() {
+			m := service.Ping()
+			rtm.SendMessage(rtm.NewOutgoingMessage(m, ev.Channel))
+			log.Infof("%#v", m)
+		}()
+	} else if len(parts) == 2 && parts[0] == "ip" {
+		api := "http://freeapi.ipip.net/"
+		ip := parts[1]
+		go func() {
+			m := service.IPQuery(api, ip)
+			rtm.SendMessage(rtm.NewOutgoingMessage(m, ev.Channel))
+			log.Infof("%#v", m)
+		}()
+	} else {
+		go func() {
+			m := fmt.Sprintf("Sorry, it's not implemented yet.\n")
+			rtm.SendMessage(rtm.NewOutgoingMessage(m, ev.Channel))
+			log.Warnf("%#v", m)
+		}()
 	}
 }
