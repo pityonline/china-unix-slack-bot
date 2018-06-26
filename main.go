@@ -48,11 +48,12 @@ func main() {
 		bot.Client.SetDebug(true)
 	}
 
-	bot.Hear("(?i)(hi|hello).*").MessageHandler(Hello)
-	bot.Hear("(?i)(ping).*").MessageHandler(Ping)
-	bot.Hear("(?i)(ip) .*").MessageHandler(QueryIP)
+	toMe := bot.Messages(slackbot.DirectMessage, slackbot.Mention).Subrouter()
+	toMe.Hear("(?i)(hi|hello).*").MessageHandler(Hello)
+	toMe.Hear("(?i)(ping).*").MessageHandler(Ping)
+	toMe.Hear("(?i)(ip) .*").MessageHandler(QueryIP)
 
-	bot.Run(false, nil)
+	bot.Run(true, nil)
 }
 
 func Hello(ctx context.Context, bot *slackbot.Bot, evt *slack.MessageEvent) {
