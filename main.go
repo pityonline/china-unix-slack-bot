@@ -36,13 +36,12 @@ func main() {
 
 	smartConfig.LoadConfig("Slack Bot", "v0.2.0", &config)
 
-	api := slack.New(config.Token)
-	bot, _ := slackbot.NewWithOpts(slackbot.WithClient(api))
+	bot, _ := slackbot.NewBot(config.Token)
 
 	if config.Debug {
 		log.SetLevel(log.DebugLevel)
 		log.Debug("Running in debug mode...")
-		api.SetDebug(true)
+		bot.Client.SetDebug(true)
 	}
 
 	bot.Hear("(?i)(hi|hello).*").MessageHandler(Hello)
