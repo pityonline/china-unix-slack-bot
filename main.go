@@ -39,8 +39,12 @@ func main() {
 	bot, _ := slackbot.NewBot(config.Token)
 
 	if config.Debug {
-		log.SetLevel(log.DebugLevel)
-		log.Debug("Running in debug mode...")
+		logger := log.New()
+		logger.Formatter = &log.TextFormatter{}
+		logger.Out = os.Stderr
+		logger.SetLevel(log.DebugLevel)
+		logger.Debug("Running in debug mode...")
+		bot.SetLogger(logger)
 		bot.Client.SetDebug(true)
 	}
 
