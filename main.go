@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	slackbot "github.com/flw-cn/go-slackbot"
-	smartConfig "github.com/flw-cn/go-smart-config"
+	"github.com/flw-cn/go-slackbot"
+	"github.com/flw-cn/go-smart-config"
 	"github.com/flw-cn/slack"
 	"github.com/pityonline/china-unix-slack-bot/service"
 	log "github.com/sirupsen/logrus"
